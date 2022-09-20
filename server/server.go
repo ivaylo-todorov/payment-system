@@ -4,18 +4,24 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
+
+	"github.com/ivaylo-todorov/payment-system/model"
+	"github.com/ivaylo-todorov/payment-system/model/controller"
 )
 
 type server struct {
+	Controller controller.Controller
 }
 
-func NewServer() *server {
-	return &server{}
+func NewServer(settings model.ApplicationSettings) *server {
+	return &server{
+		Controller: controller.NewController(settings),
+	}
 }
 
 func (s *server) Start() error {
@@ -50,35 +56,54 @@ func (s *server) root(w http.ResponseWriter, r *http.Request) {
 func (s *server) createAdmins(w http.ResponseWriter, r *http.Request) {
 	log.Printf("got POST /admins request\n")
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "can't read body", http.StatusBadRequest)
 		return
 	}
 
-	// TODO: controller
+	admins, err := ConvertCsvToAdmins(body)
+	if err != nil {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+
+	response := &AdminResponse{}
+
+	res, err := s.Controller.CreateAdmins(admins)
+	if err != nil {
+		response.Error = err.Error()
+	}
+
+	for _, a := range res {
+		response.Admins = append(response.Admins, ConvertAdminFromModel(a))
+	}
+
+	jsonResp, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("could not encode response payload: %v", err), http.StatusInternalServerError)
+		return
+	}
 
 	w.WriteHeader(http.StatusCreated)
+	w.Header().Set("Content-Type", "application/json")
 
-	w.Write(body)
+	w.Write(jsonResp)
 }
 
 func (s *server) getMerchants(w http.ResponseWriter, r *http.Request) {
 	log.Printf("got GET /merchants request\n")
 
-	// TODO: controller
+	merchants, err := s.Controller.GetMerchants()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("could not get merchants: %v", err), http.StatusInternalServerError)
+		return
+	}
 
-	response := &MerchantResponse{
-		Merchants: []Merchant{
-			{
-				Id:   "1",
-				Name: "Merchant One",
-			},
-			{
-				Id:   "2",
-				Name: "Merchant Two",
-			},
-		},
+	response := &MerchantResponse{}
+
+	for _, m := range merchants {
+		response.Merchants = append(response.Merchants, ConvertMerchantFromModel(m))
 	}
 
 	jsonResp, err := json.Marshal(response)
@@ -96,17 +121,39 @@ func (s *server) getMerchants(w http.ResponseWriter, r *http.Request) {
 func (s *server) createMerchants(w http.ResponseWriter, r *http.Request) {
 	log.Printf("got POST /merchants request\n")
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "can't read body", http.StatusBadRequest)
 		return
 	}
 
-	// TODO: controller
+	merchants, err := ConvertCsvToMerchants(body)
+	if err != nil {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+
+	response := &MerchantResponse{}
+
+	res, err := s.Controller.CreateMerchants(merchants)
+	if err != nil {
+		response.Error = err.Error()
+	}
+
+	for _, m := range res {
+		response.Merchants = append(response.Merchants, ConvertMerchantFromModel(m))
+	}
+
+	jsonResp, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("could not encode response payload: %v", err), http.StatusInternalServerError)
+		return
+	}
 
 	w.WriteHeader(http.StatusCreated)
+	w.Header().Set("Content-Type", "application/json")
 
-	w.Write(body)
+	w.Write(jsonResp)
 }
 
 func (s *server) updateMerchant(w http.ResponseWriter, r *http.Request) {
@@ -124,13 +171,23 @@ func (s *server) updateMerchant(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 
-	// TODO: controller
-
 	request.Merchant.Id = vars["id"]
+
+	merchant, err := ConvertMerchantToModel(request.Merchant)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	merchant, err = s.Controller.UpdateMerchant(merchant)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("could not delete merchant: %v", err), http.StatusInternalServerError)
+		return
+	}
 
 	response := MerchantResponse{
 		Merchants: []Merchant{
-			request.Merchant,
+			ConvertMerchantFromModel(merchant),
 		},
 	}
 
@@ -159,24 +216,19 @@ func (s *server) deleteMerchants(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: controller
-
-	response := MerchantResponse{
-		Merchants: []Merchant{
-			request.Merchant,
-		},
+	merchant, err := ConvertMerchantToModel(request.Merchant)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	jsonResp, err := json.Marshal(response)
+	err = s.Controller.DeleteMerchant(merchant)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("could not encode response payload: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("could not delete merchant: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-
-	w.Write(jsonResp)
 }
 
 func (s *server) postTransaction(w http.ResponseWriter, r *http.Request) {
@@ -192,11 +244,21 @@ func (s *server) postTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: controller
+	transaction, err := ConvertTransactionToModel(request.Transaction)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	transaction, err = s.Controller.StartTransaction(transaction)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("could not start transaction: %v", err), http.StatusInternalServerError)
+		return
+	}
 
 	response := TransactionResponse{
 		Transactions: []Transaction{
-			request.Transaction,
+			ConvertTransactionFromModel(transaction),
 		},
 	}
 
@@ -206,7 +268,7 @@ func (s *server) postTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK) // http.StatusCreated
+	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 
 	w.Write(jsonResp)
@@ -215,21 +277,16 @@ func (s *server) postTransaction(w http.ResponseWriter, r *http.Request) {
 func (s *server) getTransactions(w http.ResponseWriter, r *http.Request) {
 	log.Printf("got GET /transactions request\n")
 
-	// TODO: controller
+	transactions, err := s.Controller.GetTransactions()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("could not get transactions: %v", err), http.StatusInternalServerError)
+		return
+	}
 
-	response := &TransactionResponse{
-		Transactions: []Transaction{
-			{
-				Id:     "1",
-				Status: "approved",
-				Amount: 100,
-			},
-			{
-				Id:     "2",
-				Status: "refunded",
-				Amount: 200,
-			},
-		},
+	response := &TransactionResponse{}
+
+	for _, t := range transactions {
+		response.Transactions = append(response.Transactions, ConvertTransactionFromModel(t))
 	}
 
 	jsonResp, err := json.Marshal(response)

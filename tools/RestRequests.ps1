@@ -2,9 +2,6 @@
 $Remote = "http://localhost:8080/"
 
 
-CreateAdmin
-
-
 # Methods
 
 function DisplayTransactions {
@@ -65,18 +62,19 @@ function CreateMerchant {
 
     $Body = @"
     name, description, email
+    merchant, first merchant, merchant@email.com
 "@
 
     $res = Invoke-RestMethod -Method 'Post' -Uri $Api -Body $Body -Headers $Headers
 
-    Write-Output $res
+    Write-Output $res | ConvertTo-Json
 }
 
 function PostMerchant {
     param (
     )
 
-    $MerchantId = "1"
+    $MerchantId = "6806cc4c-bf02-4669-aac2-91ad9f13f6fb"
 
     $Api = $Remote + "merchants/" + $MerchantId
 
@@ -106,9 +104,9 @@ function DeleteMerchant {
     $Headers = @{
         'Content-Type'='application/json'
     }
-    
+
     $Merchant = @{
-        uuid = "2"
+        uuid = "170e46f9-b11b-4bd5-be14-59c3ddb2afde"
         name = "Merchant Two"
     }
 
@@ -116,9 +114,7 @@ function DeleteMerchant {
         merchant = $Merchant
     }
 
-    $res = Invoke-RestMethod -Method 'Delete' -Uri $Api -Body ($Body|ConvertTo-Json) -Headers $Headers
-
-    Write-Output $res | ConvertTo-Json
+    Invoke-RestMethod -Method 'Delete' -Uri $Api -Body ($Body|ConvertTo-Json) -Headers $Headers
 }
 
 function CreateAdmin {
@@ -133,9 +129,13 @@ function CreateAdmin {
 
     $Body = @"
     name, description, email
+    root, root user, root@email.com
 "@
 
     $res = Invoke-RestMethod -Method 'Post' -Uri $Api -Body $Body -Headers $Headers
 
-    Write-Output $res
+    Write-Output $res | ConvertTo-Json
 }
+
+
+DisplayTransactions

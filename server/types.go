@@ -1,5 +1,17 @@
 package server
 
+type Admin struct {
+	Id          string `json:"uuid"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Email       string `json:"email"`
+}
+
+type AdminResponse struct {
+	Error  string  `json:"error"`
+	Admins []Admin `json:"admins"`
+}
+
 type Merchant struct {
 	Id                 string `json:"uuid"`
 	Name               string `json:"name"`
@@ -14,11 +26,13 @@ type MerchantRequest struct {
 }
 
 type MerchantResponse struct {
+	Error     string     `json:"error"`
 	Merchants []Merchant `json:"merchants"`
 }
 
 type Transaction struct {
 	Id            string `json:"uuid"`
+	MerchantId    string `json:"merchang_uuid"`
 	Amount        uint64 `json:"amount"`
 	Status        string `json:"status"`
 	CustomerEmail string `json:"customer_email"`
@@ -30,5 +44,6 @@ type TransactionRequest struct {
 }
 
 type TransactionResponse struct {
+	Error        string        `json:"error"`
 	Transactions []Transaction `json:"transactions"`
 }

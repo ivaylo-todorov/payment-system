@@ -59,6 +59,7 @@ func ConvertTransactionFromModel(t model.Transaction) Transaction {
 	return Transaction{
 		Id:            t.Id.String(),
 		MerchantId:    t.MerchantId.String(),
+		Type:          t.Type,
 		Amount:        t.Amount,
 		Status:        t.Status,
 		CustomerEmail: t.CustomerEmail,
@@ -88,6 +89,7 @@ func ConvertTransactionToModel(t Transaction) (model.Transaction, error) {
 	return model.Transaction{
 		Id:            tid,
 		MerchantId:    mid,
+		Type:          t.Type,
 		Amount:        t.Amount,
 		CustomerEmail: t.CustomerEmail,
 		CustomerPhone: t.CustomerPhone,

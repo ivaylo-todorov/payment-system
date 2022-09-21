@@ -26,6 +26,8 @@ function PostTransaction {
     }
 
     $Transaction = @{
+        merchant_uuid = "d68e2827-4d7c-4c84-823c-4e63572732dd"
+        type = "charge"
         amount = 123
         customer_email = "customer@email.com"
     }
@@ -61,8 +63,7 @@ function CreateMerchant {
     }
 
     $Body = @"
-    name, description, email
-    merchant, first merchant, merchant@email.com
+    merchant2, second merchant, merchant2@email.com
 "@
 
     $res = Invoke-RestMethod -Method 'Post' -Uri $Api -Body $Body -Headers $Headers
@@ -74,7 +75,7 @@ function PostMerchant {
     param (
     )
 
-    $MerchantId = "6806cc4c-bf02-4669-aac2-91ad9f13f6fb"
+    $MerchantId = "d68e2827-4d7c-4c84-823c-4e63572732dd"
 
     $Api = $Remote + "merchants/" + $MerchantId
 
@@ -83,7 +84,7 @@ function PostMerchant {
     }
 
     $Merchant = @{
-        name = "Merchant One"
+        description = "Merchant Two"
     }
 
     $Body = @{
@@ -106,7 +107,7 @@ function DeleteMerchant {
     }
 
     $Merchant = @{
-        uuid = "170e46f9-b11b-4bd5-be14-59c3ddb2afde"
+        uuid = "9addb6a6-be2d-4fff-a883-a42ab761dfa5"
         name = "Merchant Two"
     }
 
@@ -128,7 +129,6 @@ function CreateAdmin {
     }
 
     $Body = @"
-    name, description, email
     root, root user, root@email.com
 "@
 
@@ -138,4 +138,10 @@ function CreateAdmin {
 }
 
 
+# PostMerchant
+
+# DisplayMerchants
+
 DisplayTransactions
+
+# PostTransaction

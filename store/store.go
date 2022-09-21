@@ -4,6 +4,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ivaylo-todorov/payment-system/model"
+	"github.com/ivaylo-todorov/payment-system/store/db"
 )
 
 type Store interface {
@@ -12,14 +13,17 @@ type Store interface {
 	CreateMerchant(model.Merchant) (model.Merchant, error)
 	UpdateMerchant(model.Merchant) (model.Merchant, error)
 	DeleteMerchant(model.Merchant) error
-	GetMerchants() ([]model.Merchant, error)
+	GetMerchants(model.MerchantQuery) ([]model.Merchant, error)
 
 	StartTransaction(model.Transaction) (model.Transaction, error)
-	GetTransactions() ([]model.Transaction, error)
+	GetTransactions(model.TransactionQuery) ([]model.Transaction, error)
 }
 
-func NewStore(settings model.ApplicationSettings) Store {
-	return &dummyStore{}
+func NewStore(settingss model.StoreSettings) (Store, error) {
+	if settingss.DummyDb {
+		return &dummyStore{}, nil
+	}
+	return db.NewDb(settingss)
 }
 
 type dummyStore struct {
@@ -57,7 +61,7 @@ func (s *dummyStore) DeleteMerchant(model.Merchant) error {
 	return nil
 }
 
-func (s *dummyStore) GetMerchants() ([]model.Merchant, error) {
+func (s *dummyStore) GetMerchants(model.MerchantQuery) ([]model.Merchant, error) {
 	return []model.Merchant{
 		{
 			Id:   uuid.New(),
@@ -76,7 +80,7 @@ func (s *dummyStore) StartTransaction(transaction model.Transaction) (model.Tran
 	return transaction, nil
 }
 
-func (s *dummyStore) GetTransactions() ([]model.Transaction, error) {
+func (s *dummyStore) GetTransactions(model.TransactionQuery) ([]model.Transaction, error) {
 	return []model.Transaction{
 		{
 			Id:         uuid.New(),

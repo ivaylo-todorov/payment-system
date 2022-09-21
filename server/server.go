@@ -18,10 +18,15 @@ type server struct {
 	Controller controller.Controller
 }
 
-func NewServer(settings model.ApplicationSettings) *server {
-	return &server{
-		Controller: controller.NewController(settings),
+func NewServer(settings model.ApplicationSettings) (*server, error) {
+	c, err := controller.NewController(settings)
+	if err != nil {
+		return nil, err
 	}
+
+	return &server{
+		Controller: c,
+	}, nil
 }
 
 func (s *server) Start() error {
@@ -94,7 +99,9 @@ func (s *server) createAdmins(w http.ResponseWriter, r *http.Request) {
 func (s *server) getMerchants(w http.ResponseWriter, r *http.Request) {
 	log.Printf("got GET /merchants request\n")
 
-	merchants, err := s.Controller.GetMerchants()
+	query := model.MerchantQuery{}
+
+	merchants, err := s.Controller.GetMerchants(query)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("could not get merchants: %v", err), http.StatusInternalServerError)
 		return
@@ -277,7 +284,9 @@ func (s *server) postTransaction(w http.ResponseWriter, r *http.Request) {
 func (s *server) getTransactions(w http.ResponseWriter, r *http.Request) {
 	log.Printf("got GET /transactions request\n")
 
-	transactions, err := s.Controller.GetTransactions()
+	query := model.TransactionQuery{}
+
+	transactions, err := s.Controller.GetTransactions(query)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("could not get transactions: %v", err), http.StatusInternalServerError)
 		return

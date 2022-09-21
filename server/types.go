@@ -32,7 +32,8 @@ type MerchantResponse struct {
 
 type Transaction struct {
 	Id            string `json:"uuid"`
-	MerchantId    string `json:"merchang_uuid"`
+	MerchantId    string `json:"merchant_uuid"`
+	Type          string `json:"type"`
 	Amount        uint64 `json:"amount"`
 	Status        string `json:"status"`
 	CustomerEmail string `json:"customer_email"`

@@ -1,7 +1,33 @@
 package model
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
+)
+
+const (
+	UserRoleAdmin    = "admin"
+	UserRoleMerchant = "merchant"
+
+	MerchantStatusActive   = "active"
+	MerchantStatusInactive = "inactive"
+
+	TransactionTypeAuthorize = "autorize"
+	TransactionTypeCharge    = "charge"
+	TransactionTypeRefunc    = "refund"
+	TransactionTypeReversal  = "reversal"
+
+	TransactionStatusApproved = "approved"
+	TransactionStatusReversed = "reversed"
+	TransactionStatusRefunded = "refunded"
+	TransactionStatusError    = "error"
+)
+
+var (
+	ErrRecordNotFound      = errors.New("record not found")
+	ErrMerchantNotFound    = errors.New("merchant not found")
+	ErrTransactionNotFound = errors.New("transaction not found")
 )
 
 type Admin struct {
@@ -24,8 +50,15 @@ type Merchant struct {
 type Transaction struct {
 	Id            uuid.UUID
 	MerchantId    uuid.UUID
+	Type          string
 	Amount        uint64
 	Status        string
 	CustomerEmail string
 	CustomerPhone string
+}
+
+type MerchantQuery struct {
+}
+
+type TransactionQuery struct {
 }

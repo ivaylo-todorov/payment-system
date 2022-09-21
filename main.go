@@ -8,7 +8,16 @@ import (
 )
 
 func main() {
-	settings := model.ApplicationSettings{}
-	webServer := server.NewServer(settings)
+	settings := model.ApplicationSettings{
+		StoreSettings: model.StoreSettings{
+			ShowSQLQueries: false,
+		},
+	}
+
+	webServer, err := server.NewServer(settings)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
 	log.Fatal((webServer.Start()))
 }

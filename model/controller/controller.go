@@ -11,16 +11,21 @@ type Controller interface {
 	CreateMerchants([]model.Merchant) ([]model.Merchant, error)
 	UpdateMerchant(model.Merchant) (model.Merchant, error)
 	DeleteMerchant(model.Merchant) error
-	GetMerchants() ([]model.Merchant, error)
+	GetMerchants(model.MerchantQuery) ([]model.Merchant, error)
 
 	StartTransaction(model.Transaction) (model.Transaction, error)
-	GetTransactions() ([]model.Transaction, error)
+	GetTransactions(model.TransactionQuery) ([]model.Transaction, error)
 }
 
-func NewController(settings model.ApplicationSettings) *controller {
-	return &controller{
-		Store: store.NewStore(settings),
+func NewController(settings model.ApplicationSettings) (*controller, error) {
+	store, err := store.NewStore(settings.StoreSettings)
+	if err != nil {
+		return nil, err
 	}
+
+	return &controller{
+		Store: store,
+	}, nil
 }
 
 type controller struct {
@@ -59,14 +64,14 @@ func (m *controller) DeleteMerchant(merchant model.Merchant) error {
 	return m.Store.DeleteMerchant(merchant)
 }
 
-func (m *controller) GetMerchants() ([]model.Merchant, error) {
-	return m.Store.GetMerchants()
+func (m *controller) GetMerchants(query model.MerchantQuery) ([]model.Merchant, error) {
+	return m.Store.GetMerchants(query)
 }
 
 func (m *controller) StartTransaction(transaction model.Transaction) (model.Transaction, error) {
 	return m.Store.StartTransaction(transaction)
 }
 
-func (m *controller) GetTransactions() ([]model.Transaction, error) {
-	return m.Store.GetTransactions()
+func (m *controller) GetTransactions(query model.TransactionQuery) ([]model.Transaction, error) {
+	return m.Store.GetTransactions(query)
 }

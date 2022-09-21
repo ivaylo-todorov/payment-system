@@ -41,9 +41,8 @@ type Merchant struct {
 	UserID uint
 	User   User
 
-	MerchantId          uuid.UUID `gorm:"type:uuid"`
-	Status              string
-	TotalTransactionSum uint64
+	MerchantId uuid.UUID `gorm:"type:uuid"`
+	Status     string
 }
 
 func (m *Merchant) BeforeCreate(tx *gorm.DB) error {
@@ -61,6 +60,7 @@ type Transaction struct {
 	Merchant   Merchant
 
 	TransactionId uuid.UUID `gorm:"type:uuid"`
+	ParentId      uuid.UUID `gorm:"type:uuid"`
 	Type          string
 	Amount        uint64
 	Status        string

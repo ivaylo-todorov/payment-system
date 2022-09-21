@@ -69,7 +69,7 @@ func (m *controller) GetMerchants(query model.MerchantQuery) ([]model.Merchant, 
 }
 
 func (m *controller) StartTransaction(transaction model.Transaction) (model.Transaction, error) {
-	return m.Store.StartTransaction(transaction)
+	return m.Store.CreateTransaction(transaction)
 }
 
 func (m *controller) GetTransactions(query model.TransactionQuery) ([]model.Transaction, error) {

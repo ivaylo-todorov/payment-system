@@ -2,6 +2,7 @@ package db
 
 import (
 	"errors"
+	"fmt"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -96,7 +97,6 @@ func (s *sqLiteDb) CreateMerchant(m model.Merchant) (model.Merchant, error) {
 
 		m.Id = merchant.MerchantId
 		m.Status = merchant.Status
-		m.TransactionsAmount = merchant.TotalTransactionSum
 
 		return nil
 	}
@@ -150,8 +150,6 @@ func (s *sqLiteDb) UpdateMerchant(m model.Merchant) (model.Merchant, error) {
 			return err
 		}
 
-		m.TransactionsAmount = merchant.TotalTransactionSum
-
 		return nil
 	}
 
@@ -189,7 +187,10 @@ func (s *sqLiteDb) DeleteMerchant(m model.Merchant) error {
 
 func (s *sqLiteDb) GetMerchants(query model.MerchantQuery) ([]model.Merchant, error) {
 
-	rows, err := s.db.Debug().Joins("User").Model(&Merchant{}).Rows()
+	rows, err := s.db.Model(&Merchant{}).Joins("User").
+		Joins(`left join (select merchant_id, sum(amount) as total_transaction_sum from transactions where transactions.type = "charge" and transactions.status = "approved" group by merchant_id) t on merchants.id = t.merchant_id`).
+		Select("merchants.merchant_id, merchants.status, t.total_transaction_sum").Rows()
+
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +198,11 @@ func (s *sqLiteDb) GetMerchants(query model.MerchantQuery) ([]model.Merchant, er
 
 	merchants := []model.Merchant{}
 
-	var m Merchant
+	var m struct {
+		Merchant
+		TotalTransactionSum uint64
+	}
+
 	for rows.Next() {
 		err = s.db.ScanRows(rows, &m)
 		if err != nil {
@@ -217,7 +222,7 @@ func (s *sqLiteDb) GetMerchants(query model.MerchantQuery) ([]model.Merchant, er
 	return merchants, nil
 }
 
-func (s *sqLiteDb) StartTransaction(t model.Transaction) (model.Transaction, error) {
+func (s *sqLiteDb) CreateTransaction(t model.Transaction) (model.Transaction, error) {
 
 	merchant := Merchant{}
 
@@ -229,30 +234,17 @@ func (s *sqLiteDb) StartTransaction(t model.Transaction) (model.Transaction, err
 		return model.Transaction{}, result.Error
 	}
 
-	if t.Type == model.TransactionTypeCharge {
-
-		transaction := Transaction{
-			MerchantID: merchant.ID,
-
-			Type:          t.Type,
-			Amount:        t.Amount,
-			Status:        model.TransactionStatusApproved,
-			CustomerEmail: t.CustomerEmail,
-			CustomerPhone: t.CustomerPhone,
-		}
-
-		err := s.db.Create(&transaction).Error
-		if err != nil {
-			return model.Transaction{}, err
-		}
-
-		t.Id = transaction.TransactionId
-		t.Status = transaction.Status
-
-		return t, nil
+	if t.Type == model.TransactionTypeAuthorize {
+		return s.createAuthorizeTransaction(merchant.ID, t)
+	} else if t.Type == model.TransactionTypeCharge {
+		return s.createChargeTransaction(merchant.ID, t)
+	} else if t.Type == model.TransactionTypeRefund {
+		return s.createRefundTransaction(merchant.ID, t)
+	} else if t.Type == model.TransactionTypeReversal {
+		return s.createReversalTransaction(merchant.ID, t)
 	}
 
-	return model.Transaction{}, nil
+	return model.Transaction{}, fmt.Errorf("invalid transaction type")
 }
 
 func (s *sqLiteDb) GetTransactions(query model.TransactionQuery) ([]model.Transaction, error) {
@@ -284,4 +276,109 @@ func (s *sqLiteDb) GetTransactions(query model.TransactionQuery) ([]model.Transa
 	}
 
 	return transactions, nil
+}
+
+func (s *sqLiteDb) createAuthorizeTransaction(merchantId uint, t model.Transaction) (model.Transaction, error) {
+	transaction := Transaction{
+		MerchantID: merchantId,
+
+		Type:          t.Type,
+		Amount:        t.Amount,
+		Status:        t.Status,
+		CustomerEmail: t.CustomerEmail,
+		CustomerPhone: t.CustomerPhone,
+	}
+
+	err := s.db.Create(&transaction).Error
+	if err != nil {
+		return model.Transaction{}, err
+	}
+
+	t.Id = transaction.TransactionId
+
+	return t, nil
+}
+
+func (s *sqLiteDb) createChargeTransaction(merchantId uint, t model.Transaction) (model.Transaction, error) {
+	transaction := Transaction{
+		MerchantID: merchantId,
+
+		ParentId:      t.ParentId,
+		Type:          t.Type,
+		Amount:        t.Amount,
+		Status:        t.Status,
+		CustomerEmail: t.CustomerEmail,
+		CustomerPhone: t.CustomerPhone,
+	}
+
+	err := s.db.Create(&transaction).Error
+	if err != nil {
+		return model.Transaction{}, err
+	}
+
+	t.Id = transaction.TransactionId
+
+	return t, nil
+}
+
+func (s *sqLiteDb) createRefundTransaction(merchantId uint, t model.Transaction) (model.Transaction, error) {
+	transaction := Transaction{
+		MerchantID: merchantId,
+
+		ParentId:      t.ParentId,
+		Type:          t.Type,
+		Amount:        t.Amount,
+		Status:        t.Status,
+		CustomerEmail: t.CustomerEmail,
+		CustomerPhone: t.CustomerPhone,
+	}
+
+	txFunc := func(tx *gorm.DB) error {
+
+		if err := tx.Model(&Transaction{}).Where("TransactionId = ?", t.ParentId).Update("Status", model.TransactionStatusRefunded).Error; err != nil {
+			return err
+		}
+
+		err := tx.Create(&transaction).Error
+		if err != nil {
+			return err
+		}
+
+		t.Id = transaction.TransactionId
+
+		return nil
+	}
+
+	return t, s.db.Transaction(txFunc)
+}
+
+func (s *sqLiteDb) createReversalTransaction(merchantId uint, t model.Transaction) (model.Transaction, error) {
+	transaction := Transaction{
+		MerchantID: merchantId,
+
+		ParentId:      t.ParentId,
+		Type:          t.Type,
+		Amount:        t.Amount,
+		Status:        t.Status,
+		CustomerEmail: t.CustomerEmail,
+		CustomerPhone: t.CustomerPhone,
+	}
+
+	txFunc := func(tx *gorm.DB) error {
+
+		if err := tx.Model(&Transaction{}).Where("TransactionId = ?", t.ParentId).Update("Status", model.TransactionStatusReversed).Error; err != nil {
+			return err
+		}
+
+		err := tx.Create(&transaction).Error
+		if err != nil {
+			return err
+		}
+
+		t.Id = transaction.TransactionId
+
+		return nil
+	}
+
+	return t, s.db.Transaction(txFunc)
 }

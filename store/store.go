@@ -15,7 +15,7 @@ type Store interface {
 	DeleteMerchant(model.Merchant) error
 	GetMerchants(model.MerchantQuery) ([]model.Merchant, error)
 
-	StartTransaction(model.Transaction) (model.Transaction, error)
+	CreateTransaction(model.Transaction) (model.Transaction, error)
 	GetTransactions(model.TransactionQuery) ([]model.Transaction, error)
 }
 
@@ -74,7 +74,7 @@ func (s *dummyStore) GetMerchants(model.MerchantQuery) ([]model.Merchant, error)
 	}, nil
 }
 
-func (s *dummyStore) StartTransaction(transaction model.Transaction) (model.Transaction, error) {
+func (s *dummyStore) CreateTransaction(transaction model.Transaction) (model.Transaction, error) {
 	transaction.Id = uuid.New()
 	transaction.MerchantId = uuid.New()
 	return transaction, nil

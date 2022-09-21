@@ -15,7 +15,7 @@ const (
 
 	TransactionTypeAuthorize = "autorize"
 	TransactionTypeCharge    = "charge"
-	TransactionTypeRefunc    = "refund"
+	TransactionTypeRefund    = "refund"
 	TransactionTypeReversal  = "reversal"
 
 	TransactionStatusApproved = "approved"
@@ -49,6 +49,7 @@ type Merchant struct {
 
 type Transaction struct {
 	Id            uuid.UUID
+	ParentId      uuid.UUID
 	MerchantId    uuid.UUID
 	Type          string
 	Amount        uint64

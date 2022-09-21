@@ -58,6 +58,7 @@ func ConvertMerchantToModel(m Merchant) (model.Merchant, error) {
 func ConvertTransactionFromModel(t model.Transaction) Transaction {
 	return Transaction{
 		Id:            t.Id.String(),
+		ParentId:      t.ParentId.String(),
 		MerchantId:    t.MerchantId.String(),
 		Type:          t.Type,
 		Amount:        t.Amount,
@@ -78,6 +79,14 @@ func ConvertTransactionToModel(t Transaction) (model.Transaction, error) {
 		}
 	}
 
+	var pid uuid.UUID
+	if t.ParentId != "" {
+		pid, err = uuid.Parse(t.ParentId)
+		if err != nil {
+			return model.Transaction{}, err
+		}
+	}
+
 	var mid uuid.UUID
 	if t.MerchantId != "" {
 		mid, err = uuid.Parse(t.MerchantId)
@@ -88,8 +97,10 @@ func ConvertTransactionToModel(t Transaction) (model.Transaction, error) {
 
 	return model.Transaction{
 		Id:            tid,
+		ParentId:      pid,
 		MerchantId:    mid,
 		Type:          t.Type,
+		Status:        t.Status,
 		Amount:        t.Amount,
 		CustomerEmail: t.CustomerEmail,
 		CustomerPhone: t.CustomerPhone,

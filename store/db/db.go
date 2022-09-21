@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -153,13 +154,17 @@ func (s *sqLiteDb) UpdateMerchant(m model.Merchant) (model.Merchant, error) {
 		return nil
 	}
 
-	return m, s.db.Transaction(txFunc)
+	if err := s.db.Transaction(txFunc); err != nil {
+		return model.Merchant{}, err
+	}
+
+	return s.getMerchant(merchant.ID)
 }
 
-func (s *sqLiteDb) DeleteMerchant(m model.Merchant) error {
+func (s *sqLiteDb) DeleteMerchant(id uuid.UUID) error {
 	merchant := Merchant{}
 
-	result := s.db.Where("merchant_id = ?", m.Id.String()).First(&merchant)
+	result := s.db.Where("merchant_id = ?", id).First(&merchant)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return model.ErrMerchantNotFound
@@ -168,6 +173,15 @@ func (s *sqLiteDb) DeleteMerchant(m model.Merchant) error {
 	}
 
 	return s.db.Transaction(func(tx *gorm.DB) error {
+
+		var count int64
+		if err := tx.Model(&Transaction{}).Where("merchant_id = ?", merchant.ID).Count(&count).Error; err != nil {
+			return err
+		}
+
+		if count != 0 {
+			return fmt.Errorf("cannot delete user with transactions")
+		}
 
 		user := User{
 			Model: gorm.Model{ID: merchant.UserID},
@@ -183,6 +197,30 @@ func (s *sqLiteDb) DeleteMerchant(m model.Merchant) error {
 
 		return nil
 	})
+}
+
+func (s *sqLiteDb) getMerchant(id uint) (model.Merchant, error) {
+	var m struct {
+		Merchant
+		TotalTransactionSum uint64
+	}
+
+	err := s.db.Model(&Merchant{}).Joins("User").
+		Joins(`left join (select merchant_id, sum(amount) as total_transaction_sum from transactions where transactions.type = "charge" and transactions.status = "approved" group by merchant_id) t on merchants.id = t.merchant_id`).
+		Select("merchants.merchant_id, merchants.status, t.total_transaction_sum").First(&m).Error
+
+	if err != nil {
+		return model.Merchant{}, err
+	}
+
+	return model.Merchant{
+		Id:                 m.MerchantId,
+		Name:               m.User.Name,
+		Description:        m.User.Description,
+		Email:              m.User.Email,
+		Status:             m.Status,
+		TransactionsAmount: m.TotalTransactionSum,
+	}, nil
 }
 
 func (s *sqLiteDb) GetMerchants(query model.MerchantQuery) ([]model.Merchant, error) {
@@ -234,6 +272,10 @@ func (s *sqLiteDb) CreateTransaction(t model.Transaction) (model.Transaction, er
 		return model.Transaction{}, result.Error
 	}
 
+	if merchant.Status != model.MerchantStatusActive {
+		return model.Transaction{}, fmt.Errorf("merchant is not active")
+	}
+
 	if t.Type == model.TransactionTypeAuthorize {
 		return s.createAuthorizeTransaction(merchant.ID, t)
 	} else if t.Type == model.TransactionTypeCharge {
@@ -245,6 +287,28 @@ func (s *sqLiteDb) CreateTransaction(t model.Transaction) (model.Transaction, er
 	}
 
 	return model.Transaction{}, fmt.Errorf("invalid transaction type")
+}
+
+func (s *sqLiteDb) GetTransaction(id uuid.UUID) (model.Transaction, error) {
+	t := Transaction{}
+
+	result := s.db.Where("transaction_id = ?", id.String()).First(&t)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return model.Transaction{}, model.ErrTransactionNotFound
+		}
+		return model.Transaction{}, result.Error
+	}
+
+	return model.Transaction{
+		Id:            t.TransactionId,
+		MerchantId:    t.Merchant.MerchantId,
+		Type:          t.Type,
+		Amount:        t.Amount,
+		Status:        t.Status,
+		CustomerEmail: t.CustomerEmail,
+		CustomerPhone: t.CustomerPhone,
+	}, nil
 }
 
 func (s *sqLiteDb) GetTransactions(query model.TransactionQuery) ([]model.Transaction, error) {
@@ -335,16 +399,21 @@ func (s *sqLiteDb) createRefundTransaction(merchantId uint, t model.Transaction)
 
 	txFunc := func(tx *gorm.DB) error {
 
-		if err := tx.Model(&Transaction{}).Where("TransactionId = ?", t.ParentId).Update("Status", model.TransactionStatusRefunded).Error; err != nil {
-			return err
-		}
-
 		err := tx.Create(&transaction).Error
 		if err != nil {
 			return err
 		}
 
 		t.Id = transaction.TransactionId
+
+		// don't update reference transaction on errors
+		if transaction.Status == model.TransactionStatusError {
+			return nil
+		}
+
+		if err := tx.Model(&Transaction{}).Where("transaction_id = ?", t.ParentId).Update("Status", model.TransactionStatusRefunded).Error; err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -366,16 +435,21 @@ func (s *sqLiteDb) createReversalTransaction(merchantId uint, t model.Transactio
 
 	txFunc := func(tx *gorm.DB) error {
 
-		if err := tx.Model(&Transaction{}).Where("TransactionId = ?", t.ParentId).Update("Status", model.TransactionStatusReversed).Error; err != nil {
-			return err
-		}
-
 		err := tx.Create(&transaction).Error
 		if err != nil {
 			return err
 		}
 
 		t.Id = transaction.TransactionId
+
+		// don't update reference transaction on errors
+		if transaction.Status == model.TransactionStatusError {
+			return nil
+		}
+
+		if err := tx.Model(&Transaction{}).Where("transaction_id = ?", t.ParentId).Update("Status", model.TransactionStatusReversed).Error; err != nil {
+			return err
+		}
 
 		return nil
 	}

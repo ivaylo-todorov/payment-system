@@ -14,7 +14,7 @@ type User struct {
 
 	Name        string
 	Description string
-	Email       string
+	Email       string `gorm:"unique;not null"`
 }
 
 type Admin struct {

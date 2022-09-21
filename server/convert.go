@@ -13,7 +13,7 @@ import (
 
 const (
 	AdminRecordSize    = 3
-	MerchantRecordSize = 3
+	MerchantRecordSize = 4
 )
 
 func ConvertAdminFromModel(a model.Admin) Admin {
@@ -52,6 +52,7 @@ func ConvertMerchantToModel(m Merchant) (model.Merchant, error) {
 		Name:        m.Name,
 		Description: m.Description,
 		Email:       m.Email,
+		Status:      m.Status,
 	}, nil
 }
 
@@ -117,7 +118,7 @@ func ConvertCsvToAdmins(data []byte) ([]model.Admin, error) {
 
 	for _, r := range records {
 
-		if len(r) != MerchantRecordSize {
+		if len(r) != AdminRecordSize {
 			return nil, fmt.Errorf("invalid admin csv data")
 		}
 
@@ -141,7 +142,7 @@ func ConvertCsvToMerchants(data []byte) ([]model.Merchant, error) {
 
 	for _, r := range records {
 
-		if len(r) != AdminRecordSize {
+		if len(r) != MerchantRecordSize {
 			return nil, fmt.Errorf("invalid merchant csv data")
 		}
 
@@ -149,6 +150,7 @@ func ConvertCsvToMerchants(data []byte) ([]model.Merchant, error) {
 			Name:        strings.TrimSpace(r[0]),
 			Description: strings.TrimSpace(r[1]),
 			Email:       strings.TrimSpace(r[2]),
+			Status:      strings.TrimSpace(r[3]),
 		})
 	}
 

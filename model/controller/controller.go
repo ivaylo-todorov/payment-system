@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"fmt"
+
 	"github.com/ivaylo-todorov/payment-system/model"
 	"github.com/ivaylo-todorov/payment-system/store"
 )
@@ -32,10 +34,14 @@ type controller struct {
 	Store store.Store
 }
 
-func (m *controller) CreateAdmins(input []model.Admin) ([]model.Admin, error) {
+func (c *controller) CreateAdmins(input []model.Admin) ([]model.Admin, error) {
 	result := []model.Admin{}
 	for _, i := range input {
-		a, err := m.Store.CreateAdmin(i)
+		if err := model.ValidateAdminCreate(i); err != nil {
+			return result, err
+		}
+
+		a, err := c.Store.CreateAdmin(i)
 		if err != nil {
 			return result, err
 		}
@@ -44,10 +50,14 @@ func (m *controller) CreateAdmins(input []model.Admin) ([]model.Admin, error) {
 	return result, nil
 }
 
-func (m *controller) CreateMerchants(input []model.Merchant) ([]model.Merchant, error) {
+func (c *controller) CreateMerchants(input []model.Merchant) ([]model.Merchant, error) {
 	result := []model.Merchant{}
 	for _, i := range input {
-		m, err := m.Store.CreateMerchant(i)
+		if err := model.ValidateMerchantCreate(i); err != nil {
+			return result, err
+		}
+
+		m, err := c.Store.CreateMerchant(i)
 		if err != nil {
 			return result, err
 		}
@@ -56,22 +66,96 @@ func (m *controller) CreateMerchants(input []model.Merchant) ([]model.Merchant, 
 	return result, nil
 }
 
-func (m *controller) UpdateMerchant(merchant model.Merchant) (model.Merchant, error) {
-	return m.Store.UpdateMerchant(merchant)
+func (c *controller) UpdateMerchant(merchant model.Merchant) (model.Merchant, error) {
+	if err := model.ValidateMerchantUpdate(merchant); err != nil {
+		return merchant, err
+	}
+
+	return c.Store.UpdateMerchant(merchant)
 }
 
-func (m *controller) DeleteMerchant(merchant model.Merchant) error {
-	return m.Store.DeleteMerchant(merchant)
+func (c *controller) DeleteMerchant(merchant model.Merchant) error {
+	if err := model.ValidateMerchantDelete(merchant); err != nil {
+		return err
+	}
+
+	return c.Store.DeleteMerchant(merchant.Id)
 }
 
-func (m *controller) GetMerchants(query model.MerchantQuery) ([]model.Merchant, error) {
-	return m.Store.GetMerchants(query)
+func (c *controller) GetMerchants(query model.MerchantQuery) ([]model.Merchant, error) {
+	return c.Store.GetMerchants(query)
 }
 
-func (m *controller) StartTransaction(transaction model.Transaction) (model.Transaction, error) {
-	return m.Store.CreateTransaction(transaction)
+func (c *controller) StartTransaction(transaction model.Transaction) (model.Transaction, error) {
+	if err := model.ValidateTransactionCreate(transaction); err != nil {
+		return transaction, err
+	}
+
+	if transaction.Type == model.TransactionTypeAuthorize {
+		transaction.Status = model.TransactionStatusApproved
+		return c.Store.CreateTransaction(transaction)
+	}
+
+	parent, err := c.Store.GetTransaction(transaction.ParentId)
+	if err != nil {
+		return transaction, err
+	}
+
+	if parent.Status != model.TransactionStatusApproved && parent.Status != model.TransactionStatusRefunded {
+		transaction.Status = model.TransactionStatusError
+		return c.Store.CreateTransaction(transaction)
+	}
+
+	if transaction.Type == model.TransactionTypeCharge {
+		if parent.Type != model.TransactionTypeAuthorize {
+			return transaction, fmt.Errorf("invalid reference transaction type, %s", parent.Type)
+		}
+
+		if parent.Status != model.TransactionStatusApproved {
+			return transaction, fmt.Errorf("invalid reference transaction status, %s", parent.Status)
+		}
+
+		if transaction.Amount > parent.Amount {
+			return transaction, fmt.Errorf("transaction amount bigger than authorized")
+		}
+
+		transaction.Status = model.TransactionStatusApproved
+		return c.Store.CreateTransaction(transaction)
+	}
+
+	if transaction.Type == model.TransactionTypeRefund {
+		if parent.Type != model.TransactionTypeCharge {
+			return transaction, fmt.Errorf("invalid reference transaction type, %s", parent.Type)
+		}
+
+		if parent.Status != model.TransactionStatusApproved {
+			return transaction, fmt.Errorf("invalid reference transaction status, %s", parent.Status)
+		}
+
+		if transaction.Amount != parent.Amount {
+			return transaction, fmt.Errorf("transaction amount different than charged")
+		}
+
+		transaction.Status = model.TransactionStatusRefunded
+		return c.Store.CreateTransaction(transaction)
+	}
+
+	if transaction.Type == model.TransactionTypeReversal {
+		if parent.Type != model.TransactionTypeAuthorize {
+			return transaction, fmt.Errorf("invalid reference transaction type, %s", parent.Type)
+		}
+
+		if parent.Status != model.TransactionStatusApproved {
+			return transaction, fmt.Errorf("invalid reference transaction status, %s", parent.Status)
+		}
+
+		transaction.Status = model.TransactionStatusReversed
+		return c.Store.CreateTransaction(transaction)
+	}
+
+	return transaction, fmt.Errorf("invalid transaction type")
 }
 
-func (m *controller) GetTransactions(query model.TransactionQuery) ([]model.Transaction, error) {
-	return m.Store.GetTransactions(query)
+func (c *controller) GetTransactions(query model.TransactionQuery) ([]model.Transaction, error) {
+	return c.Store.GetTransactions(query)
 }

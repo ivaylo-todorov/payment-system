@@ -12,10 +12,11 @@ type Store interface {
 
 	CreateMerchant(model.Merchant) (model.Merchant, error)
 	UpdateMerchant(model.Merchant) (model.Merchant, error)
-	DeleteMerchant(model.Merchant) error
+	DeleteMerchant(uuid.UUID) error
 	GetMerchants(model.MerchantQuery) ([]model.Merchant, error)
 
 	CreateTransaction(model.Transaction) (model.Transaction, error)
+	GetTransaction(uuid.UUID) (model.Transaction, error)
 	GetTransactions(model.TransactionQuery) ([]model.Transaction, error)
 }
 
@@ -57,7 +58,7 @@ func (s *dummyStore) UpdateMerchant(m model.Merchant) (model.Merchant, error) {
 	}, nil
 }
 
-func (s *dummyStore) DeleteMerchant(model.Merchant) error {
+func (s *dummyStore) DeleteMerchant(uuid.UUID) error {
 	return nil
 }
 
@@ -78,6 +79,15 @@ func (s *dummyStore) CreateTransaction(transaction model.Transaction) (model.Tra
 	transaction.Id = uuid.New()
 	transaction.MerchantId = uuid.New()
 	return transaction, nil
+}
+
+func (s *dummyStore) GetTransaction(uuid.UUID) (model.Transaction, error) {
+	return model.Transaction{
+		Id:         uuid.New(),
+		MerchantId: uuid.New(),
+		Status:     "approved",
+		Amount:     100,
+	}, nil
 }
 
 func (s *dummyStore) GetTransactions(model.TransactionQuery) ([]model.Transaction, error) {

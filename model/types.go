@@ -13,7 +13,7 @@ const (
 	MerchantStatusActive   = "active"
 	MerchantStatusInactive = "inactive"
 
-	TransactionTypeAuthorize = "autorize"
+	TransactionTypeAuthorize = "authorize"
 	TransactionTypeCharge    = "charge"
 	TransactionTypeRefund    = "refund"
 	TransactionTypeReversal  = "reversal"

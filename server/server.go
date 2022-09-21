@@ -63,13 +63,13 @@ func (s *server) createAdmins(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "can't read body", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("can't read body: %v", err), http.StatusBadRequest)
 		return
 	}
 
 	admins, err := ConvertCsvToAdmins(body)
 	if err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("invalid data: %v", err), http.StatusBadRequest)
 		return
 	}
 
@@ -130,13 +130,13 @@ func (s *server) createMerchants(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "can't read body", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("can't read body: %v", err), http.StatusBadRequest)
 		return
 	}
 
 	merchants, err := ConvertCsvToMerchants(body)
 	if err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("invalid data: %v", err), http.StatusBadRequest)
 		return
 	}
 
@@ -188,7 +188,7 @@ func (s *server) updateMerchant(w http.ResponseWriter, r *http.Request) {
 
 	merchant, err = s.Controller.UpdateMerchant(merchant)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("could not delete merchant: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("could not update merchant: %v", err), http.StatusInternalServerError)
 		return
 	}
 

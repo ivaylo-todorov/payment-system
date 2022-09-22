@@ -59,6 +59,10 @@ type Transaction struct {
 	MerchantID uint
 	Merchant   Merchant
 
+	// TODO: Self-Referential Has One
+	// ParentId *uint
+	// Parent   *Transaction
+
 	TransactionId uuid.UUID `gorm:"type:uuid"`
 	ParentId      uuid.UUID `gorm:"type:uuid"`
 	Type          string

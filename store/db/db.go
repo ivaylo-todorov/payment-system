@@ -302,6 +302,7 @@ func (s *sqLiteDb) GetTransaction(id uuid.UUID) (model.Transaction, error) {
 
 	return model.Transaction{
 		Id:            t.TransactionId,
+		ParentId:      t.ParentId,
 		MerchantId:    t.Merchant.MerchantId,
 		Type:          t.Type,
 		Amount:        t.Amount,
@@ -330,6 +331,7 @@ func (s *sqLiteDb) GetTransactions(query model.TransactionQuery) ([]model.Transa
 
 		transactions = append(transactions, model.Transaction{
 			Id:            t.TransactionId,
+			ParentId:      t.ParentId,
 			MerchantId:    t.Merchant.MerchantId,
 			Type:          t.Type,
 			Amount:        t.Amount,

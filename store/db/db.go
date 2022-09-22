@@ -161,6 +161,10 @@ func (s *sqLiteDb) UpdateMerchant(m model.Merchant) (model.Merchant, error) {
 	return s.getMerchant(merchant.ID)
 }
 
+// Merchants are soft deleted. This might cause email conflict
+// TODO:
+//
+//	hard delete or change deleted record email
 func (s *sqLiteDb) DeleteMerchant(id uuid.UUID) error {
 	merchant := Merchant{}
 

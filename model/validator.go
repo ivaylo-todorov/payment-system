@@ -68,7 +68,7 @@ func ValidateTransactionCreate(t Transaction) error {
 	}
 
 	if t.Type == TransactionTypeAuthorize {
-		if t.Amount == 0 {
+		if t.Amount <= 0 {
 			return fmt.Errorf("zero transaction amount")
 		}
 		return nil
@@ -78,7 +78,7 @@ func ValidateTransactionCreate(t Transaction) error {
 		if t.ParentId == uuid.Nil {
 			return fmt.Errorf("missing reference transaction id")
 		}
-		if t.Amount == 0 {
+		if t.Amount <= 0 {
 			return fmt.Errorf("zeero transaction amount")
 		}
 		return nil
@@ -88,7 +88,7 @@ func ValidateTransactionCreate(t Transaction) error {
 		if t.ParentId == uuid.Nil {
 			return fmt.Errorf("missing reference transaction id")
 		}
-		if t.Amount == 0 {
+		if t.Amount != 0 {
 			return fmt.Errorf("transaction amount should be zero")
 		}
 		return nil

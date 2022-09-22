@@ -44,7 +44,7 @@ type Merchant struct {
 	Email       string
 
 	Status             string
-	TransactionsAmount uint64
+	TransactionsAmount int64
 }
 
 type Transaction struct {
@@ -52,7 +52,7 @@ type Transaction struct {
 	ParentId      uuid.UUID
 	MerchantId    uuid.UUID
 	Type          string
-	Amount        uint64
+	Amount        int64
 	Status        string
 	CustomerEmail string
 	CustomerPhone string

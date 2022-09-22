@@ -202,7 +202,7 @@ func (s *sqLiteDb) DeleteMerchant(id uuid.UUID) error {
 func (s *sqLiteDb) getMerchant(id uint) (model.Merchant, error) {
 	var m struct {
 		Merchant
-		TotalTransactionSum uint64
+		TotalTransactionSum int64
 	}
 
 	err := s.db.Model(&Merchant{}).Joins("User").
@@ -238,7 +238,7 @@ func (s *sqLiteDb) GetMerchants(query model.MerchantQuery) ([]model.Merchant, er
 
 	var m struct {
 		Merchant
-		TotalTransactionSum uint64
+		TotalTransactionSum int64
 	}
 
 	for rows.Next() {

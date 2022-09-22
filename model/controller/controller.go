@@ -19,12 +19,7 @@ type Controller interface {
 	GetTransactions(model.TransactionQuery) ([]model.Transaction, error)
 }
 
-func NewController(settings model.ApplicationSettings) (*controller, error) {
-	store, err := store.NewStore(settings.StoreSettings)
-	if err != nil {
-		return nil, err
-	}
-
+func NewController(settings model.ApplicationSettings, store store.Store) (*controller, error) {
 	return &controller{
 		Store: store,
 	}, nil

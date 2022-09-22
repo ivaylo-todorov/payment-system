@@ -12,6 +12,7 @@ import (
 
 	"github.com/ivaylo-todorov/payment-system/model"
 	"github.com/ivaylo-todorov/payment-system/model/controller"
+	"github.com/ivaylo-todorov/payment-system/store"
 )
 
 type server struct {
@@ -19,7 +20,12 @@ type server struct {
 }
 
 func NewServer(settings model.ApplicationSettings) (*server, error) {
-	c, err := controller.NewController(settings)
+	store, err := store.NewStore(settings.StoreSettings)
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := controller.NewController(settings, store)
 	if err != nil {
 		return nil, err
 	}

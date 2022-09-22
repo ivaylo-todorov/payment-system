@@ -66,7 +66,7 @@ type Transaction struct {
 	TransactionId uuid.UUID `gorm:"type:uuid"`
 	ParentId      uuid.UUID `gorm:"type:uuid"`
 	Type          string
-	Amount        uint64
+	Amount        int64
 	Status        string
 	CustomerEmail string
 	CustomerPhone string

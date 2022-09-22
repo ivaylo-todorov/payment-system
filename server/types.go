@@ -12,13 +12,14 @@ type AdminResponse struct {
 	Admins []Admin `json:"admins"`
 }
 
+// TODO: omit empty for Name, Description, Email, Staatus in request
 type Merchant struct {
 	Id                 string `json:"uuid"`
 	Name               string `json:"name"`
 	Description        string `json:"description"`
 	Email              string `json:"email"`
 	Status             string `json:"status"`
-	TransactionsAmount uint64 `json:"total_transaction_sum"`
+	TransactionsAmount int64  `json:"total_transaction_sum"`
 }
 
 type MerchantRequest struct {
@@ -30,12 +31,13 @@ type MerchantResponse struct {
 	Merchants []Merchant `json:"merchants"`
 }
 
+// TODO: omit empty for ParentId
 type Transaction struct {
 	Id            string `json:"uuid"`
 	ParentId      string `json:"parent_uuid"`
 	MerchantId    string `json:"merchant_uuid"`
 	Type          string `json:"type"`
-	Amount        uint64 `json:"amount"`
+	Amount        int64  `json:"amount"`
 	Status        string `json:"status"`
 	CustomerEmail string `json:"customer_email"`
 	CustomerPhone string `json:"customer_phone"`

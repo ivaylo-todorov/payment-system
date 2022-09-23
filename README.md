@@ -36,8 +36,8 @@ Default hostname and port are 'localhost' and '8080' and can be omitted
 Transactions and Merchants can be displayed in the browser also:
 
 ```
-http://localhost:8080/transactions
-http://localhost:8080/merchants
+http://localhost:8080/transactions?render
+http://localhost:8080/merchants?render
 ```
 
 ## To run server

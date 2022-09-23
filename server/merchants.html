@@ -1,0 +1,19 @@
+<h1>Merchants</h1>
+<table>
+    <tr>
+      <td>Name</td>
+      <td>Email</td>
+      <td>TransactionsAmount</td>
+      <td>Status</td>
+    </tr>
+    {{range .Merchants}}
+      <tr>
+        <td>{{.Name}}</td>
+        <td>{{.Email}}</td>
+        <td>{{.TransactionsAmount}}</td>
+        <td>{{.Status}}</td>
+      </tr>
+    {{end}}
+  </table>
+<ul>
+</ul>

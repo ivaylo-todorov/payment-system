@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"text/template"
 
 	"github.com/gorilla/mux"
 	"github.com/ivaylo-todorov/payment-system/model"
@@ -69,6 +70,17 @@ func (s *server) getMerchants(w http.ResponseWriter, r *http.Request) {
 
 	for _, m := range merchants {
 		response.Merchants = append(response.Merchants, ConvertMerchantFromModel(m))
+	}
+
+	if _, ok := r.URL.Query()["render"]; ok {
+		tmpl, err := template.ParseFiles(`.\server\merchants.html`)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("could not parse merchants template: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		tmpl.Execute(w, response)
+		return
 	}
 
 	jsonResp, err := json.Marshal(response)
@@ -254,6 +266,17 @@ func (s *server) getTransactions(w http.ResponseWriter, r *http.Request) {
 
 	for _, t := range transactions {
 		response.Transactions = append(response.Transactions, ConvertTransactionFromModel(t))
+	}
+
+	if _, ok := r.URL.Query()["render"]; ok {
+		tmpl, err := template.ParseFiles(`.\server\transactions.html`)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("could not parse transactions template: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		tmpl.Execute(w, response)
+		return
 	}
 
 	jsonResp, err := json.Marshal(response)

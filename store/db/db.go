@@ -19,7 +19,7 @@ func NewDb(settings model.StoreSettings) (*sqLiteDb, error) {
 		gormConfig.Logger = logger.Default.LogMode(logger.Info)
 	}
 
-	db, err := gorm.Open(sqlite.Open("test.db"), gormConfig)
+	db, err := gorm.Open(sqlite.Open("payment_system.db"), gormConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -41,6 +41,10 @@ func NewDb(settings model.StoreSettings) (*sqLiteDb, error) {
 
 type sqLiteDb struct {
 	db *gorm.DB
+}
+
+func (s *sqLiteDb) Db() *gorm.DB {
+	return s.db
 }
 
 func (s *sqLiteDb) CreateAdmin(a model.Admin) (model.Admin, error) {
@@ -89,7 +93,7 @@ func (s *sqLiteDb) CreateMerchant(m model.Merchant) (model.Merchant, error) {
 
 		merchant := Merchant{
 			UserID: user.ID,
-			Status: model.MerchantStatusActive,
+			Status: m.Status,
 		}
 
 		if err := tx.Create(&merchant).Error; err != nil {
@@ -211,7 +215,7 @@ func (s *sqLiteDb) getMerchant(id uint) (model.Merchant, error) {
 
 	err := s.db.Model(&Merchant{}).Joins("User").
 		Joins(`left join (select merchant_id, sum(amount) as total_transaction_sum from transactions where transactions.type = "charge" and transactions.status = "approved" group by merchant_id) t on merchants.id = t.merchant_id`).
-		Select("merchants.merchant_id, merchants.status, t.total_transaction_sum").First(&m).Error
+		Select("merchants.merchant_id, merchants.status, t.total_transaction_sum").First(&m, id).Error
 
 	if err != nil {
 		return model.Merchant{}, err

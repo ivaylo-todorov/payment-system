@@ -348,6 +348,17 @@ func (s *sqLiteDb) GetTransactions(query model.TransactionQuery) ([]model.Transa
 	return transactions, nil
 }
 
+func (s *sqLiteDb) DeleteTransactions(query model.TransactionQuery) error {
+	if query.OlderThan == nil {
+		return nil
+	}
+	err := s.db.Where("created_at < ?", query.OlderThan).Delete(&Transaction{}).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *sqLiteDb) createAuthorizeTransaction(merchantId uint, t model.Transaction) (model.Transaction, error) {
 	transaction := Transaction{
 		MerchantID: merchantId,

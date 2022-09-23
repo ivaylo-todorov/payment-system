@@ -18,6 +18,7 @@ type Store interface {
 	CreateTransaction(model.Transaction) (model.Transaction, error)
 	GetTransaction(uuid.UUID) (model.Transaction, error)
 	GetTransactions(model.TransactionQuery) ([]model.Transaction, error)
+	DeleteTransactions(model.TransactionQuery) error
 }
 
 func NewStore(settingss model.StoreSettings) (Store, error) {

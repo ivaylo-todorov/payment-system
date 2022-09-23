@@ -184,3 +184,7 @@ func (s *mockStore) GetTransactions(model.TransactionQuery) ([]model.Transaction
 
 	return result, nil
 }
+
+func (s *mockStore) DeleteTransactions(query model.TransactionQuery) error {
+	return nil
+}

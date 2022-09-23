@@ -2,6 +2,7 @@ package model
 
 import (
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -62,4 +63,5 @@ type MerchantQuery struct {
 }
 
 type TransactionQuery struct {
+	OlderThan *time.Time
 }

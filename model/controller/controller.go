@@ -17,6 +17,7 @@ type Controller interface {
 
 	StartTransaction(model.Transaction) (model.Transaction, error)
 	GetTransactions(model.TransactionQuery) ([]model.Transaction, error)
+	DeleteTransactions(model.TransactionQuery) error
 }
 
 func NewController(settings model.ApplicationSettings, store store.Store) (*controller, error) {
@@ -153,4 +154,8 @@ func (c *controller) StartTransaction(transaction model.Transaction) (model.Tran
 
 func (c *controller) GetTransactions(query model.TransactionQuery) ([]model.Transaction, error) {
 	return c.Store.GetTransactions(query)
+}
+
+func (c *controller) DeleteTransactions(query model.TransactionQuery) error {
+	return c.Store.DeleteTransactions(query)
 }

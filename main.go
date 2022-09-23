@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/ivaylo-todorov/payment-system/model"
 	"github.com/ivaylo-todorov/payment-system/server"
@@ -12,6 +13,7 @@ func main() {
 		StoreSettings: model.StoreSettings{
 			ShowSQLQueries: false,
 		},
+		TransactionCleanupFrequency: time.Duration(60),
 	}
 
 	webServer, err := server.NewServer(settings)
@@ -19,5 +21,18 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	log.Fatal((webServer.Start()))
+	err = webServer.StartTransactionsCleanup(settings.TransactionCleanupFrequency)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = webServer.Start()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = webServer.StopTransactionsCleanup()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
